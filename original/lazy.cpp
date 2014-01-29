@@ -32,11 +32,13 @@
 
 
 #include <stdio.h>
-#include <io.h>
-#include <fcntl.h>
 #include <stdlib.h>
 #include <ctype.h>
 
+#ifdef _WIN32
+#include <io.h>
+#include <fcntl.h>
+#endif
 
 class Expr {
 private:
@@ -56,7 +58,7 @@ private:
 public:
 	enum Type { A, K, K1, S, S1, S2, I1, LazyRead, Inc, Num, Free } type;
 
-	static void* operator new(unsigned) {
+	static void* operator new(size_t) {
 		Expr* result = free_list;
 		if (result) {
 			free_list = result->arg1;
@@ -536,10 +538,18 @@ Expr* append_program(Expr* old, Stream* stream) {
 
 void usage() {
 	fputs(
-		"usage: lazy [-b] { -e program | program-file.lazy } *\n"
+		"usage: lazy "
+#ifdef _WIN32
+		"[-b] "
+#endif
+		"[-f] { -e program | program-file.lazy } *\n"
 		"\n"
+#ifdef _WIN32
 		"   -b           puts stdin and stdout into binary mode on systems that care\n"
 		"                (i.e. Windows)\n"
+		"\n"
+#endif
+		"   -f           disable output buffering (i.e. always flush)\n"
 		"\n"
 		"   -e program   takes program code from the command line (like Perl's -e\n"
 		"                switch)\n"
@@ -560,18 +570,30 @@ int main(int argc, char** argv) {
 		if (argv[i][0] == '-') {
 			switch (argv[i][1]) {
 			case 0:
-				e = append_program(e, &File(stdin, "(standard input)"));
+				{
+					File input(stdin, "(standard input)");
+					e = append_program(e, &input);
+				}
 				break;
+#ifdef _WIN32
 			case 'b':
 				setmode(fileno(stdin), O_BINARY);
 				setmode(fileno(stdout), O_BINARY);
+				break;
+#endif
+			case 'f':
+				setbuf(stdout, NULL);
 				break;
 			case 'e':
 				++i;
 				if (i == argc) {
 					usage();
 				}
-				e = append_program(e, &StringStream(argv[i]));
+				else
+				{
+					StringStream input(argv[i]);
+					e = append_program(e, &input);
+				}
 				break;
 			default:
 				usage();
@@ -582,7 +604,8 @@ int main(int argc, char** argv) {
 				fprintf(stderr, "Unable to open the file \"%s\".\n", argv[i]);
 				exit(1);
 			}
-			e = append_program(e, &File(f, argv[i]));
+			File input(f, argv[i]);
+			e = append_program(e, &input);
 		}
 	}
 	e = Expr::partial_apply(e, new Expr(Expr::LazyRead));
