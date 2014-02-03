@@ -10,11 +10,8 @@ parseApply = do
 	blank
 	a <- parseExpr
 	b <- parseExpr
-	if c == '*'
-		then let resolve_i_as_iota = change_S2KK_to iota
-			in return $ A (resolve_i_as_iota a) (resolve_i_as_iota b)
-		else let simplify_i = change_S2KK_to I
-			in return $ A (simplify_i a) (simplify_i b)
+	let change_S2KK = if c == '*' then change_S2KK_to iota else change_S2KK_to I
+		in return $ A (change_S2KK a) (change_S2KK b)
 
 change_S2KK_to new_i (S2 K K) = new_i
 change_S2KK_to _ a = a
