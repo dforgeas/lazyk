@@ -3,7 +3,9 @@ import Text.ParserCombinators.Parsec
 import System.Environment -- for the getArgs function
 -- import qualified Data.ByteString.Lazy as B; to be used later if this is faster or makes sense
 
-data Atom = A Atom Atom | K | S | K1 Atom | S1 Atom | S2 Atom Atom | I | V String | Inc | N !Int | B2 Atom Atom | C2 Atom Atom deriving(Show, Eq)
+-- I, K, S, T, and Z are known as the Schönfinkel combinators
+-- http://www.johndcook.com/blog/2014/02/06/schonfinkel-combinators/
+data Atom = A Atom Atom | K | S | K1 Atom | S1 Atom | S2 Atom Atom | I | V String | Inc | N !Int | T2 Atom Atom | Z2 Atom Atom deriving (Show, Eq)
 
 parseApply = do
 	c <- oneOf "`*"
@@ -140,8 +142,8 @@ execute (A S a) = S1 a
 execute (A (S1 a) b) = S2 a b
 execute (A (S2 a b) c) = execute $ A (A a c) (A b c)
 execute (A (V s) b) = A (V s) (execute b)
-execute (A (B2 a b) c) = execute $ A a (A b c)
-execute (A (C2 a b) c) = execute $ A (A a c) b
+execute (A (T2 a b) c) = execute $ A (A a c) b
+execute (A (Z2 a b) c) = execute $ A a (A b c)
 
 -- Inc and N make Atom communicate things back to the Haskell world
 execute (A Inc n) = N $ succ i
@@ -162,8 +164,8 @@ execute a = a
 
 optimize (A (A S (A K e)) (A K f)) = K1 (A (optimize e) (optimize f))
 optimize (A (A S (A K e)) I) = optimize e
-optimize (A (A S (A K e)) f) = B2 (optimize e) (optimize f)
-optimize (A (A S e) (A K f)) = C2 (optimize e) (optimize f)
+optimize (A (A S e) (A K f)) = T2 (optimize e) (optimize f)
+optimize (A (A S (A K e)) f) = Z2 (optimize e) (optimize f)
 optimize (A e f) = A (optimize e) (optimize f)
 optimize a = a
 
