@@ -110,7 +110,7 @@ optimize (c: cs) = c: optimize cs
 optimize [] = []
 
 optimizeHelper :: (Int -> BFCommand) -> BFCommand -> BFSource -> BFSource
-optimizeHelper command char cs = command (2 + length (takeWhile (== char) cs)): optimize (dropWhile (== char) cs)
+optimizeHelper commandN cmd cs = commandN (2 + length (takeWhile (== cmd) cs)): optimize (dropWhile (== cmd) cs)
 
 run :: Tape Int -> BFSource -> IO (Tape Int)
 run t [] = return t
