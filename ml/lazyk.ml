@@ -83,7 +83,7 @@ let () =
 		assert (test_number (int_to_church i) i)
 	done
 
-let rec iparse s = let rest = String.sub s 1 ((String.length s) - 1) in
+let rec iparse s = let rest = String.sub s 1 (String.length s - 1) in
 	match s.[0] with
 	| 's' -> (S, rest)
 	| 'k' -> (K, rest)
